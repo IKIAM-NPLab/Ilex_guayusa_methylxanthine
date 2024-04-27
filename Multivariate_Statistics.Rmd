@@ -94,7 +94,7 @@ Then...
 ```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
 
 # Low detection rate
-mode <- flag_detection(mode, qc_limit = 10/14, group_limit = 2/3)
+#mode <- flag_detection(mode, qc_limit = 10/14, group_limit = 2/3)
 
 ```
 
@@ -115,6 +115,8 @@ The next step...
 
 # Drift correction
 corrected <- correct_drift(mode)
+corrected <- correct_drift(corrected)
+corrected <- correct_drift(corrected)
 # Flag low quality features
 #corrected <- flag_quality(corrected, condition = "RSD_r < 0.8 & D_ratio_r < 1.6")
 
@@ -130,10 +132,10 @@ corr_bp <- plot_sample_boxplots(corrected,
                                 fill_by = "Factor")
 # PCA
 corr_pca <- plot_pca(corrected,
+#                     label = "Sample_ID",
                      center = TRUE,
                      shape = "Factor",
-                     color = "Factor",
-                     label = "Sample_ID")
+                     color = "Factor"                     )
 # Package to plots visualization in a same windows
 #if (!requireNamespace("devtools", quietly = TRUE)) {
 #  install.packages("devtools")
@@ -164,10 +166,10 @@ batch_bp <- plot_sample_boxplots(corrected_batch,
                                 fill_by = "Factor")
 # PCA
 batch_pca <- plot_pca(corrected_batch,
-                     center = TRUE,
-                     shape = "Factor",
-                     color = "Factor",
-                     label = "Sample_ID")
+#                      label = "Sample_ID",
+                      center = TRUE,
+                      shape = "Factor",
+                      color = "Factor")
 # Plot
 batch_pca + batch_bp
 
@@ -314,8 +316,11 @@ Droping flagged features...
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE, results='hide'}
 
-# Extract clean data
+# Drop QC
 no_qc <- drop_qcs(imputed)
+# Factor extraction
+no_qc <- no_qc[, no_qc$Factor != "Sample"]
+# Extract clean data
 no_flag <- drop_flagged(no_qc)
 # Extracting feature height table
 peak_height <- exprs(no_flag)
@@ -368,14 +373,14 @@ ggplot(scores,
   geom_point(size = 3) +
   guides(x=guide_axis(title = "PC1 (23.65 %)"),
          y=guide_axis(title = "PC2 (20.46 %)")) +
-  theme_classic() +
-  #theme(legend.text = element_text(face="italic")) +
-  theme(legend.position = c(0.1, 0.18),
-        legend.background = element_rect(fill = "white", color = "black")) +
-  theme(panel.grid = element_blank(), 
-        panel.border = element_rect(fill= "transparent")) +
-  geom_vline(xintercept = 0, linetype = "longdash", colour="gray") +
-  geom_hline(yintercept = 0, linetype = "longdash", colour="gray")
+  theme_classic()# +
+#  theme(legend.text = element_text(face="italic")) +
+#  theme(legend.position = c(0.15, 0.75),
+#        legend.background = element_rect(fill = "white", color = "black")) +
+#  theme(panel.grid = element_blank(), 
+#        panel.border = element_rect(fill= "transparent")) +
+#  geom_vline(xintercept = 0, linetype = "longdash", colour="gray") +
+#  geom_hline(yintercept = 0, linetype = "longdash", colour="gray")
 # Save plot
 #ggsave('Result/GCMS/GCMS_PCA_To_DQ.pdf', width = 5, height = 4, device='pdf', dpi="print")
 
@@ -451,17 +456,17 @@ Extracting and loaded of identified metabolites abundance.
 ```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
 
 # Metabolite name table without internal standard
-metab_name_hm <- readxl::read_excel("Data/GCMS_Metabolites.xlsx", 6)
+#metab_name_hm <- readxl::read_excel("Data/GCMS_Metabolites.xlsx", 6)
 # Add identified metabolite to "notame" output
-add_met <- join_fData(no_flag, metab_name_hm)
+#add_met <- join_fData(no_flag, metab_name_hm)
 # Extracting identified metabolite data
-raw_hm <- add_met[!is.na(add_met@featureData@data$Metabolite_name),]
+#raw_hm <- add_met[!is.na(add_met@featureData@data$Metabolite_name),]
 # Extracting feature height table
-hm_height <- exprs(raw_hm)
+#hm_height <- exprs(raw_hm)
 # Extracting sample information
-hm_pdata <- raw_hm@phenoData@data
+#hm_pdata <- raw_hm@phenoData@data
 # Extracting feature information
-hm_fdata <- raw_hm@featureData@data
+#hm_fdata <- raw_hm@featureData@data
 
 ```
 
@@ -485,13 +490,13 @@ colnames(hm_scl) <- pheno_data$Level
 #                            show_annotation_name = T,
 #                            show_legend=F)
 # Species color
-cols_species <- c("Light conditions" = "#e6550d",
+cols_factor <- c("Light conditions" = "#e6550d",
                  "Period age" = "#91cf60",
                  "Location" = "#33d2ff",
                  "Sample" = "#FFA319FF")
 # Add top anotation to HeatMap
-top_info_ann <- HeatmapAnnotation(`Factor` = pheno_data$Level,
-                                  col = list(`Factor` = cols_species),
+top_info_ann <- HeatmapAnnotation(`Factor` = pheno_data$Factor,
+                                  col = list(`Factor` = cols_factor),
                                   show_annotation_name = T,
                                   show_legend=F, 
                                   border = TRUE)
@@ -509,7 +514,7 @@ hm_plot <- Heatmap(hm_scl,
         #column_names_gp = gpar(fontface = "italic"),
         #right_annotation = hm_row_ann,
         show_heatmap_legend = F,
-        row_km = 4, column_km = 2)
+        row_km = 3, column_km = 2)
 hm_plot
 
 ```
