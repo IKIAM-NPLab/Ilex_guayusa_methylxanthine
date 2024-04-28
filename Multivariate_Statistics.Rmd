@@ -59,7 +59,7 @@ Next...
 ```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
 
 data <- read_from_excel(file = "Data/Target_Mateo_to_R.xlsx", sheet = 2, 
-                        corner_row = 7, corner_column = "F", 
+                        corner_row = 9, corner_column = "F", 
                         split_by = c("Column", "Ion Mode"))
 
 ```
@@ -128,14 +128,14 @@ Then we can visualize the data after drift correction.
 
 # Boxplot
 corr_bp <- plot_sample_boxplots(corrected,
-                                order_by = "Factor",
-                                fill_by = "Factor")
+                                order_by = "NewGroup",
+                                fill_by = "NewGroup")
 # PCA
 corr_pca <- plot_pca(corrected,
 #                     label = "Sample_ID",
                      center = TRUE,
-                     shape = "Factor",
-                     color = "Factor"                     )
+                     shape = "NewGroup",
+                     color = "NewGroup"                     )
 # Package to plots visualization in a same windows
 #if (!requireNamespace("devtools", quietly = TRUE)) {
 #  install.packages("devtools")
@@ -162,14 +162,14 @@ Then we can visualize the data after batch correction.
 
 # Boxplot
 batch_bp <- plot_sample_boxplots(corrected_batch,
-                                order_by = "Factor",
-                                fill_by = "Factor")
+                                order_by = "NewGroup",
+                                fill_by = "NewGroup")
 # PCA
 batch_pca <- plot_pca(corrected_batch,
 #                      label = "Sample_ID",
                       center = TRUE,
-                      shape = "Factor",
-                      color = "Factor")
+                      shape = "NewGroup",
+                      color = "NewGroup")
 # Plot
 batch_pca + batch_bp
 
@@ -261,6 +261,8 @@ set.seed(615)
 imputed <- impute_rf(corrected_batch)
 # To all data
 imputed <- impute_rf(corrected_batch, all_features = TRUE)
+# Exporting to MetaboAnalyst
+write_to_excel(imputed, "Result/Mateo_Data_imputed.xlsx")
 
 ```
 
@@ -270,13 +272,13 @@ We can inspect PCA plot after...
 
 # Boxplot
 imp_bp <- plot_sample_boxplots(imputed,
-                               order_by = "Factor",
-                               fill_by = "Factor")
+                               order_by = "NewGroup",
+                               fill_by = "NewGroup")
 # PCA
 imp_pca <- plot_pca(imputed,
                     center = TRUE,
-                    shape = "Factor",
-                    color = "Factor")
+                    shape = "NewGroup",
+                    color = "NewGroup")
 # Plot
 imp_pca + imp_bp
 
@@ -318,10 +320,10 @@ Droping flagged features...
 
 # Drop QC
 no_qc <- drop_qcs(imputed)
-# Factor extraction
-no_qc <- no_qc[, no_qc$Factor != "Sample"]
+# Sub QC data extraction
+data_1hm <- no_qc[, no_qc$NewGroup != "Sample"]
 # Extract clean data
-no_flag <- drop_flagged(no_qc)
+no_flag <- drop_flagged(data_1hm)
 # Extracting feature height table
 peak_height <- exprs(no_flag)
 # Extracting Phenotipic data
@@ -470,6 +472,10 @@ Extracting and loaded of identified metabolites abundance.
 
 ```
 
+## First Heatmap plot
+
+Here we extract and plotting heat map of sub QC.
+
 Scaling, row and top heatmap anotation.
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
@@ -492,8 +498,7 @@ colnames(hm_scl) <- pheno_data$Level
 # Species color
 cols_factor <- c("Light conditions" = "#e6550d",
                  "Period age" = "#91cf60",
-                 "Location" = "#33d2ff",
-                 "Sample" = "#FFA319FF")
+                 "Location" = "#33d2ff")
 # Add top anotation to HeatMap
 top_info_ann <- HeatmapAnnotation(`Factor` = pheno_data$Factor,
                                   col = list(`Factor` = cols_factor),
@@ -526,15 +531,15 @@ Adding legends to heatmap.
 # Color scale legend
 lgd1 <- Legend(col_fun = mycol,
                title = "log10 abundance",
-               at = seq(4),
+               at = seq(7),
                direction = "horizontal" )
 # Plants species legend
-lgd2 <- Legend(labels = gt_render(c("*A. rigidum*",
-                                    "*C. guianensis*",
-                                    "*M. laevis*",
-                                    "*P. sagotianum*")),
-               legend_gp = gpar(fill = cols_species),
-               title = "Plant species", ncol = 4)
+lgd2 <- Legend(labels = c("Light conditions",
+                          "Period age",
+#                          "Sample",
+                          "Location"),
+               legend_gp = gpar(fill = cols_factor),
+               title = "Enviromental factor", ncol = 4)
 # Metabolite class Legend
 #lgd3 <- Legend(labels = c(unique(hm_fdata$Superclass)) ,
 #               legend_gp = gpar(fill = cols_metclass), 
@@ -546,7 +551,7 @@ ComplexHeatmap plot
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
 
-set.seed(1540)
+set.seed(2500)
 # Converting to ggplot
 gg_heatmap <- grid.grabExpr(draw(hm_plot))
 gg_heatmap <- ggpubr::as_ggplot(gg_heatmap)
@@ -564,6 +569,127 @@ gcms_hm
       #width = 5, height = 3, units = "in", dpi = 300, scale = 1.7)
 
 ```
+
+## Second Heatmap plot
+
+Here we extract and plotting heat map of samples.
+
+Scaling, row and top heatmap anotation.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
+
+set.seed(2500)
+# Sample data extraction
+data_2hm <- no_qc[, no_qc$NewGroup != "SubGroup"]
+# Extract clean data
+data_2hm <- drop_flagged(data_2hm)
+# Extracting feature height table
+peak_2hm <- exprs(data_2hm)
+# Extracting Phenotipic data
+pheno_2hm <- data_2hm@phenoData@data
+# Logarithmic scale
+scl_2hm <- log10(peak_2hm)
+rownames(scl_2hm) <- data_2hm@featureData@data$Metabolite
+colnames(scl_2hm) <- pheno_2hm$Group
+# Metabolite class color
+#cols_metclass <- c("Benzenoids" = "#800000FF",
+#                   "Organoheterocyclic compounds" = "#8A9045FF",
+#                   "Organohalogen compounds" = "#FFA319FF",
+#                   "Internal Standard" = "#767676FF")
+# Add row anotation to HeatMap
+#hm_row_ann <- rowAnnotation(`Class` = hm_fdata$Superclass,
+#                            col = list(`Class` = cols_metclass),
+#                            show_annotation_name = T,
+#                            show_legend=F)
+# Location color
+cols_location <- c("Alto Pano" = "#e6550d",
+                 "Alto Tena" = "#91cf60",
+                 "Talag" = "#33d2ff")
+# Period age color
+cols_age <- c("Early" = "#FFF68F",
+                 "Medium" = "#CDC673",
+                 "Late" = "#8B864E")
+# Light conditions color
+cols_light <- c("Shade" = "#767676FF",
+                 "Light" = "#FFD700")
+
+# Add top anotation to HeatMap
+top_info_ann2 <- HeatmapAnnotation(`Location` = pheno_2hm$Factor,
+                                   `Light conditions` = pheno_2hm$Level,
+                                   `Period age` = pheno_2hm$Age,
+                                  col = list(`Location` = cols_location,
+                                             `Light conditions` = cols_light,
+                                             `Period age` = cols_age),
+                                  show_annotation_name = T,
+                                  show_legend=F, 
+                                  border = TRUE)
+# Color scale
+mycol_hm2 <- colorRamp2(c(3, 5, 7),
+                    c("blue", "white", "red"))
+# Heatmap matrix plotting
+plot_2hm <- Heatmap(scl_2hm,
+        col = mycol_hm2,
+        border_gp = grid::gpar(col = "black", lty = 0.05),
+        rect_gp = grid::gpar(col = "black", lwd = 0.75),
+        clustering_distance_columns = "euclidean",
+        clustering_method_columns = "complete",
+        top_annotation = top_info_ann2,
+        #column_names_gp = gpar(fontface = "italic"),
+        #right_annotation = hm_row_ann,
+        show_heatmap_legend = F,
+        row_km = 3, column_km = 2)
+plot_2hm
+
+```
+
+Adding legends to heatmap.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
+
+# Color scale legend
+lgd1 <- Legend(col_fun = mycol,
+               title = "log10 abundance",
+               at = seq(7),
+               direction = "horizontal" )
+# Plants species legend
+lgd2 <- Legend(labels = c("Light conditions",
+                          "Period age",
+#                          "Sample",
+                          "Location"),
+               legend_gp = gpar(fill = cols_factor),
+               title = "Enviromental factor", ncol = 4)
+# Metabolite class Legend
+#lgd3 <- Legend(labels = c(unique(hm_fdata$Superclass)) ,
+#               legend_gp = gpar(fill = cols_metclass), 
+#               title = "Metabolite superclass", ncol = 1)
+
+```
+
+ComplexHeatmap plot
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
+
+set.seed(2500)
+# Converting to ggplot
+gg_heatmap <- grid.grabExpr(draw(hm_plot))
+gg_heatmap <- ggpubr::as_ggplot(gg_heatmap)
+# Legends
+all_legends <- packLegend(lgd1, lgd2, direction = "horizontal")
+gg_legend <- grid.grabExpr(draw(all_legends))
+gg_legend_fn <- ggpubr::as_ggplot(gg_legend)
+# Heatmap plot
+gcms_hm <- plot_grid(gg_legend_fn,
+          gg_heatmap, ncol = 1,
+          rel_heights = c(0.195, 0.88))
+gcms_hm
+# Save heatmap plot
+#ggsave(filename = "Result/GCMS/GCMS_Heatmap_to_DQ.pdf", plot = gcms_hm,
+      #width = 5, height = 3, units = "in", dpi = 300, scale = 1.7)
+
+```
+
+
+
 
 Finish a record.
 
