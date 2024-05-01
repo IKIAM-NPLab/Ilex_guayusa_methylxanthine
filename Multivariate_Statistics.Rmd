@@ -262,7 +262,7 @@ imputed <- impute_rf(corrected_batch)
 # To all data
 imputed <- impute_rf(corrected_batch, all_features = TRUE)
 # Exporting to MetaboAnalyst
-write_to_excel(imputed, "Result/Mateo_Data_imputed.xlsx")
+#write_to_excel(imputed, "Result/Mateo_Data_imputed.xlsx")
 
 ```
 
@@ -482,9 +482,9 @@ Scaling, row and top heatmap anotation.
 
 set.seed(2500)
 # Logarithmic scale
-hm_scl <- log10(peak_height)
-rownames(hm_scl) <- imputed@featureData@data$Metabolite
-colnames(hm_scl) <- pheno_data$Level
+scl_1hm <- log10(peak_height)
+rownames(scl_1hm) <- imputed@featureData@data$Metabolite
+colnames(scl_1hm) <- pheno_data$Level
 # Metabolite class color
 #cols_metclass <- c("Benzenoids" = "#800000FF",
 #                   "Organoheterocyclic compounds" = "#8A9045FF",
@@ -495,21 +495,41 @@ colnames(hm_scl) <- pheno_data$Level
 #                            col = list(`Class` = cols_metclass),
 #                            show_annotation_name = T,
 #                            show_legend=F)
-# Species color
-cols_factor <- c("Light conditions" = "#e6550d",
-                 "Period age" = "#91cf60",
-                 "Location" = "#33d2ff")
+# Factor and level color
+cols_factor <- c("Light conditions" = "#FFD700",
+                 "Period age" = "#6E8B3D",
+                 "Location" = "#00E5EE")
+cols_level <- c("Alto Pano" = "#BFEFFF",
+                "Alto Tena" = "#B2DFEE",
+                "Talag" = "#33d2ff",
+                "Light" = "#FFFF00",
+                "Shade" = "#CDCD00",
+                "Late" = "#9BCD9B",
+                "Medium" = "#B4EEB4",
+                "Early" = "#698B69")
+cols_location <- c("Alto Pano" = "#BFEFFF",
+                "Alto Tena" = "#B2DFEE",
+                "Talag" = "#33d2ff")
+cols_age <- c("Late" = "#9BCD9B",
+                "Medium" = "#B4EEB4",
+                "Early" = "#698B69")
+cols_light <- c("Light" = "#FFFF00",
+                "Shade" = "#CDCD00")
+
 # Add top anotation to HeatMap
 top_info_ann <- HeatmapAnnotation(`Factor` = pheno_data$Factor,
-                                  col = list(`Factor` = cols_factor),
+                                  `Level` = pheno_data$Level,
+                                  col = list(`Factor` = cols_factor,
+                                             `Level` = cols_level),
                                   show_annotation_name = T,
                                   show_legend=F, 
                                   border = TRUE)
 # Color scale
 mycol <- colorRamp2(c(3, 5, 7),
                     c("blue", "white", "red"))
+#split = sample(letters[1:4], 21, replace = T)
 # Heatmap matrix plotting
-hm_plot <- Heatmap(hm_scl,
+plot_1hm <- Heatmap(scl_1hm,
         col = mycol,
         border_gp = grid::gpar(col = "black", lty = 0.05),
         rect_gp = grid::gpar(col = "black", lwd = 0.75),
@@ -519,8 +539,10 @@ hm_plot <- Heatmap(hm_scl,
         #column_names_gp = gpar(fontface = "italic"),
         #right_annotation = hm_row_ann,
         show_heatmap_legend = F,
-        row_km = 3, column_km = 2)
-hm_plot
+        #row_split = split,
+        row_km = 4,
+        column_km = 2)
+plot_1hm
 
 ```
 
@@ -529,19 +551,32 @@ Adding legends to heatmap.
 ```{r echo=TRUE, message=FALSE, warning=FALSE, error=FALSE}
 
 # Color scale legend
-lgd1 <- Legend(col_fun = mycol,
+lgd1_1hm <- Legend(col_fun = mycol,
                title = "log10 abundance",
                at = seq(7),
                direction = "horizontal" )
-# Plants species legend
-lgd2 <- Legend(labels = c("Light conditions",
+# Environment factor legend
+lgd2_1hm <- Legend(labels = c("Light conditions",
                           "Period age",
-#                          "Sample",
                           "Location"),
                legend_gp = gpar(fill = cols_factor),
-               title = "Enviromental factor", ncol = 4)
+               title = "Enviromental factor", ncol = 1)
+lgd3_1hm <- Legend(labels = c("Alto Pano",
+                          "Alto Tena",
+                          "Talag"),
+               legend_gp = gpar(fill = cols_location),
+               title = "Location level", ncol = 1)
+lgd4_1hm <- Legend(labels = c("Late",
+                          "Medium",
+                          "Early"),
+               legend_gp = gpar(fill = cols_age),
+               title = "Period age level", ncol = 1)
+lgd5_1hm <- Legend(labels = c("Light",
+                          "Shade"),
+               legend_gp = gpar(fill = cols_light),
+               title = "Light conditions level", ncol = 1)
 # Metabolite class Legend
-#lgd3 <- Legend(labels = c(unique(hm_fdata$Superclass)) ,
+#lgd6_1hm <- Legend(labels = c(unique(hm_fdata$Superclass)) ,
 #               legend_gp = gpar(fill = cols_metclass), 
 #               title = "Metabolite superclass", ncol = 1)
 
@@ -553,20 +588,20 @@ ComplexHeatmap plot
 
 set.seed(2500)
 # Converting to ggplot
-gg_heatmap <- grid.grabExpr(draw(hm_plot))
-gg_heatmap <- ggpubr::as_ggplot(gg_heatmap)
+gg_1hm <- grid.grabExpr(draw(plot_1hm))
+gg_1hm <- ggpubr::as_ggplot(gg_1hm)
 # Legends
-all_legends <- packLegend(lgd1, lgd2, direction = "horizontal")
-gg_legend <- grid.grabExpr(draw(all_legends))
-gg_legend_fn <- ggpubr::as_ggplot(gg_legend)
+all_legends1 <- packLegend(lgd1_1hm, lgd2_1hm, lgd3_1hm, lgd4_1hm, lgd5_1hm, direction = "horizontal")
+gg_legend1 <- grid.grabExpr(draw(all_legends1))
+gg_legend1_fn <- ggpubr::as_ggplot(gg_legend1)
 # Heatmap plot
-gcms_hm <- plot_grid(gg_legend_fn,
-          gg_heatmap, ncol = 1,
-          rel_heights = c(0.195, 0.88))
-gcms_hm
+lcms_1hm <- plot_grid(gg_legend1_fn,
+          gg_1hm, ncol = 1,
+          rel_heights = c(0.13, 0.88))
+lcms_1hm
 # Save heatmap plot
-#ggsave(filename = "Result/GCMS/GCMS_Heatmap_to_DQ.pdf", plot = gcms_hm,
-      #width = 5, height = 3, units = "in", dpi = 300, scale = 1.7)
+ggsave(filename = "Result/SubQC_HeatMap.pdf", plot = lcms_1hm,
+      width = 6, height = 5, units = "in", dpi = 300, scale = 1.7)
 
 ```
 
